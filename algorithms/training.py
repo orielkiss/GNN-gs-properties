@@ -12,23 +12,24 @@ import tqdm
 def train(dims, bond, path, alpha, epsilon = 0, number = 1):
 
     ####
+    ### settings ###
     a = 1
     OBC = True
     learn_energy = False
     lr = 10**-3
-    epoch = 1201
-    dropout=0.05
-
-    #########################################
+    epoch = 10000
+    dropout = 0.1
+    layers = [[N,64,128,128,64,64,64,32,N],[N,32,64,128,64,32,N]]
     N = dims[0]*dims[1]
+    #########################################
+
     #Load data
 
     dataset = load_data(dims, bond, epsilon, alpha, a, learn_energy, OBC)
     l = len(dataset)
-    print(dataset[0].edge_attribute.shape)
-    # print(dataset[0].x)
+
     edge_dim = 1
-    if dataset[0].weight_attribute is not None:
+    if dataset[0].edge_attribute is not None:
         edge_dim = dataset[0].edge_attribute.shape[1]
 
     dataset_train = dataset[:int(alpha*l)]
@@ -46,9 +47,6 @@ def train(dims, bond, path, alpha, epsilon = 0, number = 1):
 
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
-
-    layers = [[N,128,128,64,64,32,32,N,N],[N,32,64,32,N]]
-
     if learn_energy:
         layers[1][-1] = 1
     assert layers[0][-1]==layers[1][0]
@@ -57,7 +55,7 @@ def train(dims, bond, path, alpha, epsilon = 0, number = 1):
 
 
 
-    optimizer = torch.optim.Adam(model.parameters(), lr=lr, weight_decay=1e-5)
+    optimizer = torch.optim.Adam(model.parameters(), lr=lr, weight_decay=1e-4)
     scheduler = ExponentialLR(optimizer, gamma=0.995)
     model.train()
     model.double()
@@ -65,7 +63,7 @@ def train(dims, bond, path, alpha, epsilon = 0, number = 1):
     test_loss = []
     train_loss = []
 
-    best_val = 100
+    best_val = 100 #large number
     best_param = None
     ##### training #####
     for epoch in tqdm.tqdm(range(epoch)):
@@ -107,6 +105,7 @@ def train(dims, bond, path, alpha, epsilon = 0, number = 1):
                 out = torch.mean(out,axis=-1)
 
             l = criterion(out,test.y).cpu().detach().numpy()
+
             test_loss.append(l)
 
             if l<best_val:
@@ -114,17 +113,19 @@ def train(dims, bond, path, alpha, epsilon = 0, number = 1):
                 np.save(path+'/predictions{}.npy'.format(number),out.cpu().detach().numpy())
                 np.save(path+'/validation_data{}.npy'.format(number),test.y.cpu().detach().numpy())
 
-
+        # early stopping
+        if len(test_loss)>1000 and test_loss[-1]>best_val and np.mean(test_loss[-50:])>best_val:
+            break
 
         if epoch%50==0:
-            # print(loss, test_loss[-1])
+            print('loss at epoch {}:'.format(epoch),loss, test_loss[-1])
             steps = np.arange(0,len(train_loss),int(len(train_loss)/len(test_loss)))
             np.save(path+'/train_loss{}.npy'.format(number),np.array(train_loss) )
             np.save(path+'/test_loss{}.npy'.format(number),np.array(test_loss) )
             np.save(path+'/steps{}.npy'.format(number),np.array(steps))
 
 
-    # plotting loss and validation examples 
+    # plotting loss and validation examples
     plt.figure()
     plt.plot(steps,test_loss,'.',color='darkviolet',label='validation')
     plt.plot(train_loss,color='green',label = 'training')

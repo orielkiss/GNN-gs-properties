@@ -96,7 +96,7 @@ def load_data(dims, bond, epsilon = 0, alpha = 0.8, a = 1, learn_energy = False,
     edge_index = torch.tensor(generate_links_rectangular_graph_open(*dims))  #create edge of the 2d lattice
     if not OBC:
         edge_index = torch.tensor(create_edges_list(*dims))
-    print(len(edge_index))
+
     # extract the energy and scale
     energy = observables[:,0].reshape(-1,1)
     scaler = MinMaxScaler()
@@ -104,8 +104,10 @@ def load_data(dims, bond, epsilon = 0, alpha = 0.8, a = 1, learn_energy = False,
     ######
 
     # extract the correlators
-    # correlators = 1/3*np.sum(np.array([np.array(observables[:,1+n*l:1+(n+1)*l]) for n in range(3)]),axis=0).reshape(-1,N,N)
-    correlators = observables[:,4:4+N**2].reshape(-1,N,N)
+    correlators = 1/3*np.sum(np.array([np.array(observables[:,1+n*l:1+(n+1)*l]) for n in range(3)]),axis=0).reshape(-1,N,N)
+
+    # Here we collect the out of time correlators (which we are not able to learn)
+    # correlators = observables[:,4:4+N**2].reshape(-1,N,N)
     OOTC = np.zeros((observables.shape[0],N, N))
 
     _ = 0
@@ -115,6 +117,7 @@ def load_data(dims, bond, epsilon = 0, alpha = 0.8, a = 1, learn_energy = False,
             _+=1
 
     # correlators = OOTC
+    
     I, J = torch.triu_indices(N, N, offset=1)
 
    # build the graph datatset
@@ -144,6 +147,7 @@ def load_data(dims, bond, epsilon = 0, alpha = 0.8, a = 1, learn_energy = False,
                 x = torch.diag(torch.tensor(field[_,:],dtype=torch.double)).to(device),
                 edge_index  = edge_index.t().contiguous().to(device),
                 edge_weight = torch.tensor(coupling[_,...]).to(device).T,
+                edge_attribute = None,
                 y = y
                        )
         dataset.append(data)

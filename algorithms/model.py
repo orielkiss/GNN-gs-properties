@@ -13,7 +13,7 @@ class GCN(torch.nn.Module):
     Args:
        - layers: list of sizes of the hidden GrapConv layers, and hidden fully connected layers
        - N (int): number of spins
-       - edge_dim (int): dimension of the couplings 
+       - edge_dim (int): dimension of the couplings
        - dropout (int): dropout probabilities
        - batch_size: number of data point per optimization step
        - learn_energy (bool): flag if only the energy is to learn
@@ -30,16 +30,6 @@ class GCN(torch.nn.Module):
 
 
         for l in range(len(layers[0])-1):
-
-            a = 32
-            b = 64
-            neural_net = nn.Sequential(
-                      nn.Linear(2,a),
-                      nn.ReLU(),
-                      nn.Linear(a,b),
-                      nn.ReLU(),
-                      nn.Linear(a,layers[0][l]*layers[0][l+1])
-                    )
 
             if edge_dim >1:
                 conv_ = GENConv(layers[0][l], layers[0][l+1], edge_dim = 2,  aggr='sum',
@@ -65,7 +55,7 @@ class GCN(torch.nn.Module):
         x = data.x
 
         for conv in self.conv:
-            x = conv(x, data.edge_index, data.edge_weight, data.edge_attribute).relu()
+            x = conv(x, data.edge_index,  data.edge_attribute).relu()
             x = F.dropout(x, p=self.dropout)
 
 

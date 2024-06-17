@@ -3,10 +3,11 @@ import numpy as np
 import os
 
 def main(number):
-    L = 4
-    bond = 64
-    epsilon = 0
-    alpha = 0.8 # ratio training/validation set
+    L = 5        #system size N=L^2
+    bond = 64    #bond dimension (for DMRG)
+    epsilon = 0  #noise level
+    alpha = 0.9  #trainig/validation split
+
 
     try: os.makedirs('results/{}'.format(L))
     except:pass
@@ -20,8 +21,9 @@ def main(number):
 
     dims = [L,L]
     train(dims, bond, path, alpha, epsilon, number)
+    return None
 
 if __name__ == '__main__':
     number = 0
-    for number in range(1):
-        main(number)
+    for number in range(5):
+        _ = main(number)
